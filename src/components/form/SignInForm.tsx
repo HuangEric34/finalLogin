@@ -1,6 +1,7 @@
 'use client';
 
 import { useForm } from 'react-hook-form';
+import { signIn } from 'next-auth/react';
 import {
   Form,
   FormControl,
@@ -15,6 +16,9 @@ import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import Link from 'next/link';
 import GoogleSignInButton from '../GoogleSignInButton';
+import { useRouter } from 'next/navigation';
+import { useToast } from '../ui/use-toast';
+
 
 const FormSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Invalid email'),
@@ -25,6 +29,8 @@ const FormSchema = z.object({
 });
 
 const SignInForm = () => {
+  const { toast } = useToast();
+  const router = useRouter();
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
@@ -33,8 +39,23 @@ const SignInForm = () => {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof FormSchema>) => {
-    console.log(values);
+  const onSubmit = async (values: z.infer<typeof FormSchema>) => {
+    const signInData = await signIn('credentials', {
+      email: values.email,
+      password: values.password,
+      redirect: false,
+    });
+
+    if (signInData?.error) {
+      toast({
+        title: "Sign-in Error",
+        description: "Oops! Your username or password is incorrect.",
+        variant: "destructive",
+      });
+    } else {
+      router.refresh();
+      router.push("/dashboard");
+    }
   };
 
   return (
